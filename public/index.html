@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Report a Problem</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f4f8; margin: 0; padding: 2rem 1rem; color: #1a202c;
+    }
+    .card {
+      max-width: 560px; margin: 0 auto; background: #fff; border-radius: 12px;
+      padding: 2rem; box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    }
+    h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
+    p.sub { color: #4a5568; margin-top: 0; }
+    label { display: block; font-weight: 600; margin: 1.1rem 0 0.35rem; font-size: 0.92rem; }
+    .req::after { content: " *"; color: #e53e3e; }
+    input[type=text], input[type=url], select, textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid #cbd5e0; border-radius: 8px;
+      font-size: 1rem; font-family: inherit; background: #fff;
+    }
+    textarea { min-height: 140px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid #3182ce; border-color: #3182ce; }
+    .hint { color: #718096; font-size: 0.8rem; margin-top: 0.3rem; }
+    button {
+      margin-top: 1.5rem; width: 100%; padding: 12px; background: #3182ce; color: #fff;
+      border: none; border-radius: 8px; font-size: 1.05rem; font-weight: 600; cursor: pointer;
+    }
+    button:hover { background: #2b6cb0; }
+    button:disabled { background: #a0aec0; cursor: wait; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🛠️ Report a Problem</h1>
+    <p class="sub">Tell us what's wrong and our dev team will take a look.</p>
+
+    <form id="ticketForm" method="post" action="/submit" enctype="multipart/form-data">
+      <label class="req" for="name">Your name</label>
+      <input type="text" id="name" name="name" required maxlength="100" placeholder="Jane Smith">
+
+      <label class="req" for="client">Company / Client</label>
+      <select id="client" name="client" required>
+        <option value="" disabled selected>Select your company…</option>
+      </select>
+
+      <label for="site_url">Website / page URL</label>
+      <input type="url" id="site_url" name="site_url" maxlength="500" placeholder="https://example.com/contact">
+      <div class="hint">Paste the address of the page where the problem happens, if you can.</div>
+
+      <label class="req" for="title">What's the problem, in a few words?</label>
+      <input type="text" id="title" name="title" required maxlength="150" placeholder="Contact form not sending">
+
+      <label class="req" for="details">Describe the problem</label>
+      <textarea id="details" name="details" required maxlength="5000"
+        placeholder="What did you try to do? What happened instead? When did it start? Don't worry about technical terms — just describe it in your own words."></textarea>
+
+      <label for="attachment">Screenshot or video (optional)</label>
+      <input type="file" id="attachment" name="attachment" accept="image/*,video/*">
+      <div class="hint">A screenshot helps a lot. Max 50&nbsp;MB.</div>
+
+      <button type="submit" id="submitBtn">Submit ticket</button>
+    </form>
+  </div>
+
+  <script>
+    fetch('/api/clients')
+      .then((r) => r.json())
+      .then((clients) => {
+        const select = document.getElementById('client');
+        clients.forEach((c) => {
+          const opt = document.createElement('option');
+          opt.value = c;
+          opt.textContent = c;
+          select.appendChild(opt);
+        });
+      });
+
+    document.getElementById('ticketForm').addEventListener('submit', () => {
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+    });
+  </script>
+</body>
+</html>
