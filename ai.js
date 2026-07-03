@@ -1,6 +1,6 @@
-const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenAI, Type } = require('@google/genai');
 
-const client = new Anthropic(); // reads ANTHROPIC_API_KEY (or an `ant auth login` profile)
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 const SYSTEM_PROMPT = `You turn support requests written by non-technical website clients into
 clear tickets for a web development team.
@@ -15,29 +15,28 @@ Translate that into precise technical language a developer can act on:
 Assign priority: "urgent" only for a site fully down or losing money/data,
 "high" for broken core functionality, "medium" for partial issues, "low" for cosmetic requests.`;
 
-const TICKET_SCHEMA = {
-  type: 'object',
+const RESPONSE_SCHEMA = {
+  type: Type.OBJECT,
   properties: {
     title: {
-      type: 'string',
+      type: Type.STRING,
       description: 'Short, technical ticket title (max ~80 chars)',
     },
     summary: {
-      type: 'string',
+      type: Type.STRING,
       description: 'One-paragraph plain summary of what the client reported',
     },
     technical_description: {
-      type: 'string',
+      type: Type.STRING,
       description:
         'The issue rewritten in technical developer language: likely area of the codebase/stack, expected vs actual behavior, and suggested first debugging steps',
     },
     priority: {
-      type: 'string',
+      type: Type.STRING,
       enum: ['low', 'medium', 'high', 'urgent'],
     },
   },
   required: ['title', 'summary', 'technical_description', 'priority'],
-  additionalProperties: false,
 };
 
 /**
@@ -45,6 +44,10 @@ const TICKET_SCHEMA = {
  * Throws on API failure — caller decides the fallback.
  */
 async function summarizeTicket(ticket) {
+  if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not set');
+
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
   const userContent = [
     `Client contact: ${ticket.name}`,
     `Client/company: ${ticket.client}`,
@@ -56,18 +59,18 @@ async function summarizeTicket(ticket) {
     ticket.details,
   ].join('\n');
 
-  const response = await client.messages.create({
-    model: 'claude-opus-4-8',
-    max_tokens: 2048,
-    thinking: { type: 'adaptive' },
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userContent }],
-    output_config: { format: { type: 'json_schema', schema: TICKET_SCHEMA } },
+  const response = await ai.models.generateContent({
+    model: MODEL,
+    contents: userContent,
+    config: {
+      systemInstruction: SYSTEM_PROMPT,
+      responseMimeType: 'application/json',
+      responseSchema: RESPONSE_SCHEMA,
+    },
   });
 
-  const textBlock = response.content.find((b) => b.type === 'text');
-  if (!textBlock) throw new Error(`No text in AI response (stop_reason: ${response.stop_reason})`);
-  return JSON.parse(textBlock.text);
+  if (!response.text) throw new Error('Empty response from Gemini');
+  return JSON.parse(response.text);
 }
 
 module.exports = { summarizeTicket };
