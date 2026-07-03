@@ -30,14 +30,14 @@ Fill in `.env`:
 | `APP_URL` | Public URL of this app, e.g. `https://tickets.yourdomain.com` — used so attachment links in Slack are clickable. Leave empty on localhost. |
 | `PORT` | Default `3000` |
 
-Edit **`clients.json`** to set the companies shown in the client dropdown.
+**Clients** shown in the form dropdown are managed from the admin panel — add or remove them in the "Clients" section at the top of `/admin`. (They're stored in the database; the old `clients.json` file is no longer used.)
 
 ## URLs
 
 | URL | Who | What |
 |---|---|---|
 | `/` | Clients | The problem-report form |
-| `/admin` | You | Ticket log + Slack status + retry (HTTP Basic Auth, password from `.env`) |
+| `/admin` | You | Manage clients, view the ticket log, set each ticket's workflow status (New / In progress / Stuck / Solved), filter by status/priority/client/date, see AI + Slack status, and retry failures (HTTP Basic Auth, password from `ADMIN_PASSWORD`) |
 
 ## Data
 
