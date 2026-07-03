@@ -51,20 +51,25 @@ async function sendTicketToSlack(ticket) {
     });
   }
 
-  if (ticket.attachment_path) {
-    const base = (process.env.APP_URL || '').replace(/\/$/, '');
-    const link = base
-      ? `${base}/uploads/${ticket.attachment_path}`
-      : `(attachment saved on server: uploads/${ticket.attachment_path} — set APP_URL in .env to get clickable links)`;
+  if (ticket.attachment_url) {
+    let link = ticket.attachment_url;
+    if (!/^https?:\/\//.test(link)) {
+      // Local-disk path like /uploads/xyz.png — needs APP_URL to be clickable
+      const base = (process.env.APP_URL || '').replace(/\/$/, '');
+      link = base
+        ? `${base}${link}`
+        : `(attachment saved on server: ${link} — set APP_URL in .env to get clickable links)`;
+    }
     blocks.push({
       type: 'section',
       text: { type: 'mrkdwn', text: `*Attachment:* ${link}` },
     });
   }
 
+  const submitted = new Date(ticket.created_at).toISOString().replace('T', ' ').slice(0, 16);
   blocks.push({
     type: 'context',
-    elements: [{ type: 'mrkdwn', text: `Submitted ${ticket.created_at} UTC via ticket form` }],
+    elements: [{ type: 'mrkdwn', text: `Submitted ${submitted} UTC via ticket form` }],
   });
 
   const res = await fetch(webhookUrl, {

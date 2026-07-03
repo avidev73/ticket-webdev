@@ -43,7 +43,35 @@ Edit **`clients.json`** to set the companies shown in the client dropdown.
 - Tickets are stored in a local SQLite file `tickets.db` (created automatically).
 - Uploaded screenshots/videos go to `uploads/` and are served at `/uploads/<file>`.
 
+## Deploying on Vercel
+
+The app is Vercel-ready (`api/index.js` + `vercel.json`). On Vercel it automatically switches from local SQLite/disk to **Postgres** and **Vercel Blob**:
+
+1. Go to [vercel.com/new](https://vercel.com/new) and **import the `avidev73/ticket-webdev` GitHub repo**. Framework preset: *Other*. Deploy.
+2. In the project's **Storage** tab:
+   - Create a **Neon (Postgres)** database → this auto-adds `DATABASE_URL` to the project.
+   - Create a **Blob** store → this auto-adds `BLOB_READ_WRITE_TOKEN` (screenshots get public URLs, clickable straight from Slack — no `APP_URL` needed).
+3. In **Settings → Environment Variables**, add:
+   - `ANTHROPIC_API_KEY`
+   - `SLACK_WEBHOOK_URL`
+   - `ADMIN_PASSWORD`
+4. **Redeploy** (Deployments → ⋯ → Redeploy) so the new env vars take effect.
+
+Every `git push` to `main` then auto-deploys.
+
+CLI alternative: `npx vercel login && npx vercel --prod`, then the same Storage/env-var steps.
+
+### How the environment switch works
+
+| | Local (`npm start`) | Vercel |
+|---|---|---|
+| Ticket log | SQLite file `tickets.db` | Postgres (`DATABASE_URL` present) |
+| Attachments | `uploads/` folder | Vercel Blob (`BLOB_READ_WRITE_TOKEN` present) |
+| Attachment links in Slack | need `APP_URL` set | automatic (Blob URLs are public) |
+
+Note: on Vercel the form submit takes a few extra seconds — the AI summary and Slack post run before the "Thanks" page is shown, because serverless functions can't keep working in the background after responding.
+
 ## Notes
 
 - The AI model used is `claude-opus-4-8`; change it in `ai.js` if you want.
-- Slack webhooks can't upload files, so attachments are shared as links to this app — that's why `APP_URL` matters once deployed.
+- On local runs, Slack webhooks can't fetch files from your machine, so attachment links need `APP_URL`. On Vercel this is handled by Blob automatically.

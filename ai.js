@@ -50,7 +50,7 @@ async function summarizeTicket(ticket) {
     `Client/company: ${ticket.client}`,
     `Site/URL: ${ticket.site_url || '(not provided)'}`,
     `Subject given by client: ${ticket.title}`,
-    ticket.attachment_path ? 'The client attached a screenshot/video (not shown here).' : '',
+    ticket.attachment_url ? 'The client attached a screenshot/video (not shown here).' : '',
     '',
     'Problem description from the client:',
     ticket.details,
