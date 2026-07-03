@@ -13,10 +13,12 @@ const { sendTicketToSlack } = require('./slack');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Attachments: Vercel Blob when a token is present (deployed), local disk otherwise
+// Attachments: Vercel Blob when a token is present (deployed), local disk otherwise.
+// On Vercel without Blob, keep files in memory so we can show a clear error.
 const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
+const USE_DISK = !USE_BLOB && !process.env.VERCEL;
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
-if (!USE_BLOB) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+if (USE_DISK) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 function uniqueFilename(originalname) {
   const safeExt = path.extname(originalname).toLowerCase().slice(0, 10);
@@ -24,12 +26,12 @@ function uniqueFilename(originalname) {
 }
 
 const upload = multer({
-  storage: USE_BLOB
-    ? multer.memoryStorage()
-    : multer.diskStorage({
+  storage: USE_DISK
+    ? multer.diskStorage({
         destination: UPLOAD_DIR,
         filename: (req, file, cb) => cb(null, uniqueFilename(file.originalname)),
-      }),
+      })
+    : multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
   fileFilter: (req, file, cb) => {
     const ok = /^(image|video)\//.test(file.mimetype);
@@ -46,6 +48,11 @@ async function storeAttachment(file) {
       contentType: file.mimetype,
     });
     return blob.url; // public https URL — clickable from Slack directly
+  }
+  if (!USE_DISK) {
+    throw new Error(
+      'Attachment uploads need Blob storage. In your Vercel project: Storage tab → Create → Blob, then Redeploy. (Or submit without an attachment.)'
+    );
   }
   return `/uploads/${file.filename}`;
 }

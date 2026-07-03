@@ -130,4 +130,26 @@ function sqliteStore() {
   };
 }
 
-module.exports = PG_URL ? postgresStore() : sqliteStore();
+// On Vercel without a database, fail with an actionable message instead of
+// crashing the whole function (serverless filesystem is read-only, so the
+// SQLite fallback can't work there).
+function unconfiguredStore() {
+  const fail = async () => {
+    throw new Error(
+      'No database connected. In your Vercel project: Storage tab → Create Database → Neon (Postgres), then Redeploy. That sets DATABASE_URL automatically.'
+    );
+  };
+  return {
+    insertTicket: fail,
+    saveAiResult: fail,
+    saveSlackStatus: fail,
+    getTicket: fail,
+    listTickets: fail,
+  };
+}
+
+module.exports = PG_URL
+  ? postgresStore()
+  : process.env.VERCEL
+    ? unconfiguredStore()
+    : sqliteStore();
